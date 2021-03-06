@@ -26,6 +26,10 @@
 import ifcopenshell
 import ifcopenshell.guid as guid
 
+geomTypes = set([
+    'IfcLocalPlacement', 'IfcRepresentationMap', 'IfcGeometricRepresentationContext', 'IfcGeometricRepresentationSubContext', 'IfcProductDefinitionShape',
+    'IfcMaterialDefinitionRepresentation', 'IfcShapeRepresentation', 'IfcRepresentationItem', 'IfcStyledRepresentation', 'IfcPresentationLayerAssignment', 'IfcTopologyRepresentation'
+])
 
 class IFC2JSON:
     """Base class for all IFC SPF to ifcJSON writers
@@ -106,11 +110,14 @@ class IFC2JSON:
         attribute data converted to ifcJSON-4 model structure
 
         """
+        skipGeom = getattr(self, 'GEOMETRY', True) == False
         if value == None or value == '':
             jsonValue = None
         elif isinstance(value, ifcopenshell.entity_instance):
             entity = value
             entityAttributes = entity.__dict__
+            if skipGeom and entityAttributes['type'] in geomTypes:
+                return None
 
             # Remove empty properties
             if entity.is_a('IfcProperty'):
