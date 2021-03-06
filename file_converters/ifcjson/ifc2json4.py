@@ -32,6 +32,8 @@ import ifcopenshell.guid as guid
 import ifcjson.common as common
 from datetime import datetime
 from ifcopenshell.entity_instance import entity_instance
+import json
+import sys
 
 
 class IFC2JSON4(common.IFC2JSON):
@@ -84,7 +86,7 @@ class IFC2JSON4(common.IFC2JSON):
         elif GEOMETRY == False:
             self.remove_geometry()
 
-    def spf2Json(self):
+    def spf2JsonStream(self):
         """
         Create json dictionary structure for all attributes of the objects in the root list
         also including inverse attributes (except for IfcGeometricRepresentationContext and IfcOwnerHistory types)
@@ -136,7 +138,22 @@ class IFC2JSON4(common.IFC2JSON):
                             entityAttributes[attr] = attrValue
 
             entityAttributes["GlobalId"] = self.rootObjects[entity.id()]
-            jsonObjects.append(self.createFullObject(entityAttributes))
+            yield self.createFullObject(entityAttributes)
+
+    def spf2Json(self):
+        """
+        Create json dictionary structure for all attributes of the objects in the root list
+        also including inverse attributes (except for IfcGeometricRepresentationContext and IfcOwnerHistory types)
+        # (?) Check every IFC object to see if it is used multiple times
+
+        Returns:
+        dict: ifcJSON-4 model structure
+
+        """
+
+        jsonObjects = []
+        for jsonObject in self.spf2JsonStream():
+          jsonObjects.append(jsonObject)
 
         return {
             'type': 'ifcJSON',

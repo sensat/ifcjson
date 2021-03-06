@@ -29,6 +29,7 @@ import os
 import argparse
 import json
 import ifcjson
+import sys
 
 t1_start = perf_counter()
 
@@ -38,7 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', type=str, help='input ifc file path')
     parser.add_argument('-o', type=str, help='output json file path')
     parser.add_argument(
-        '-v', type=str, help='ifcJSON version, options: "4"(default), "5a"')
+        '-v', type=str, help='ifcJSON version, options: "4"(default), "4s", "5a"')
     parser.add_argument('-c', '--compact', action='store_true',
                         help='Pretty print is turned off and references are created without informative "type" property')
     parser.add_argument('-n', '--no_inverse', action='store_true',
@@ -91,6 +92,20 @@ if __name__ == '__main__':
                                           ).spf2Json()
             with open(jsonFilePath, 'w') as outfile:
                 json.dump(jsonData, outfile, indent=indent)
+        elif args.v == "4s":
+            jsonStream = ifcjson.IFC2JSON4(ifcFilePath,
+                                         COMPACT,
+                                         NO_INVERSE=args.no_inverse,
+                                         EMPTY_PROPERTIES=args.empty_properties,
+                                         NO_OWNERHISTORY=args.no_ownerhistory,
+                                         GEOMETRY=GEOMETRY
+                                         ).spf2JsonStream()
+            with open(jsonFilePath, 'w') as outfile:
+              for idx, jsonObject in enumerate(jsonStream):
+                json.dump(jsonObject, outfile, indent=None)
+                outfile.write("\n")
+                sys.stderr.write("\r" + str(idx+1))
+              sys.stderr.write("\n")
         else:
             print('Version ' + args.v + ' is not supported')
     else:
