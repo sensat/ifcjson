@@ -121,6 +121,11 @@ class IFC2JSON4(common.IFC2JSON):
         for entity in relationships:
             self.rootObjects[entity.id()] = guid.split(
                 guid.expand(entity.GlobalId))[1:-1]
+        
+        if self.COMPACT:
+            self.compactIds = {}
+            for entityId in self.rootObjects:
+                self.compactIds[entityId] = len(self.compactIds)+1
 
         for key in self.rootObjects:
             entity = self.ifcModel.by_id(key)
@@ -180,18 +185,21 @@ class IFC2JSON4(common.IFC2JSON):
         fullObject = {}
 
         for attr in entityAttributes:
-
-            # Line numbers are not part of IFC JSON
-            if attr == 'id':
-                continue
-
             attrKey = self.toLowerCamelcase(attr)
+            attrVal = entityAttributes[attr]
+
+            if attrKey == 'id':
+                if self.COMPACT and attrVal in self.compactIds:
+                    attrVal = self.compactIds[attrVal]
+                else:
+                    # Line numbers are not part of IFC JSON
+                    continue
 
             # Replace wrappedvalue key names to value
             if attrKey == 'wrappedValue':
                 attrKey = 'value'
 
-            jsonValue = self.getAttributeValue(entityAttributes[attr])
+            jsonValue = self.getAttributeValue(attrVal)
             if jsonValue is not None:
                 fullObject[attrKey] = jsonValue
         return fullObject
@@ -208,9 +216,11 @@ class IFC2JSON4(common.IFC2JSON):
 
         """
         ref = {}
-        if not COMPACT:
+        if COMPACT:
+            ref['ref'] = self.compactIds[entityAttributes['id']]
+        else:
+            ref['ref'] = entityAttributes['GlobalId']
             ref['type'] = entityAttributes['type']
-        ref['ref'] = entityAttributes['GlobalId']
         return ref
 
     def tessellate(self):
