@@ -199,6 +199,9 @@ class IFC2JSON4(common.IFC2JSON):
             if attrKey == 'wrappedValue':
                 attrKey = 'value'
 
+            if attrKey == 'globalId' and self.COMPACT:
+                attrVal = guid.compress(uuid.UUID(attrVal).hex)
+
             jsonValue = self.getAttributeValue(attrVal)
             if jsonValue is not None:
                 fullObject[attrKey] = jsonValue
