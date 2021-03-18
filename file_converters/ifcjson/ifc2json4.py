@@ -127,24 +127,36 @@ class IFC2JSON4(common.IFC2JSON):
             for entityId in self.rootObjects:
                 self.compactIds[entityId] = len(self.compactIds)+1
 
-        for key in self.rootObjects:
-            entity = self.ifcModel.by_id(key)
-            entityAttributes = entity.__dict__
-            entityType = entityAttributes['type']
-            if self.GEOMETRY == False and entityType in common.geomTypes:
-                continue
-            if not entityType == 'IfcOwnerHistory':
-                if not self.NO_INVERSE:
-                    for attr in entity.wrapped_data.get_inverse_attribute_names():
-                        inverseAttribute = getattr(entity, attr)
-                        attrValue = self.getAttributeValue(inverseAttribute)
-                        if not attrValue and attrValue is not False:
-                            continue
-                        else:
-                            entityAttributes[attr] = attrValue
+        if self.GEOMETRY == False:
+            total = sum(
+                1
+                for key in self.rootObjects
+                if self.ifcModel.by_id(key).__dict__['type'] not in common.geomTypes
+            )
+        else:
+            total = len(self.rootObjects)
 
-            entityAttributes["GlobalId"] = self.rootObjects[entity.id()]
-            yield self.createFullObject(entityAttributes)
+        def yieldObjects():
+            for key in self.rootObjects:
+                entity = self.ifcModel.by_id(key)
+                entityAttributes = entity.__dict__
+                entityType = entityAttributes['type']
+                if self.GEOMETRY == False and entityType in common.geomTypes:
+                    continue
+                if not entityType == 'IfcOwnerHistory':
+                    if not self.NO_INVERSE:
+                        for attr in entity.wrapped_data.get_inverse_attribute_names():
+                            inverseAttribute = getattr(entity, attr)
+                            attrValue = self.getAttributeValue(inverseAttribute)
+                            if not attrValue and attrValue is not False:
+                                continue
+                            else:
+                                entityAttributes[attr] = attrValue
+
+                entityAttributes["GlobalId"] = self.rootObjects[entity.id()]
+                yield self.createFullObject(entityAttributes)
+        
+        return [total, yieldObjects()]
 
     def spf2Json(self):
         """
@@ -158,7 +170,7 @@ class IFC2JSON4(common.IFC2JSON):
         """
 
         jsonObjects = []
-        for jsonObject in self.spf2JsonStream():
+        for jsonObject in self.spf2JsonStream()[1]:
           jsonObjects.append(jsonObject)
 
         return {

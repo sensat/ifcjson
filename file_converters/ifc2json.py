@@ -29,7 +29,12 @@ import os
 import argparse
 import json
 import ifcjson
-import sys
+import math
+
+def print_progress(count, total, extra=''):
+    prev_pct, pct = math.floor((count-1)/total*100), math.floor(count/total*100)
+    if prev_pct != pct:
+        print(f"{pct}% ({count}/{total}){extra}", flush=True)
 
 t1_start = perf_counter()
 
@@ -93,7 +98,7 @@ if __name__ == '__main__':
             with open(jsonFilePath, 'w') as outfile:
                 json.dump(jsonData, outfile, indent=indent)
         elif args.v == "4s":
-            jsonStream = ifcjson.IFC2JSON4(ifcFilePath,
+            [total, jsonStream] = ifcjson.IFC2JSON4(ifcFilePath,
                                          COMPACT,
                                          NO_INVERSE=args.no_inverse,
                                          EMPTY_PROPERTIES=args.empty_properties,
@@ -101,11 +106,12 @@ if __name__ == '__main__':
                                          GEOMETRY=GEOMETRY
                                          ).spf2JsonStream()
             with open(jsonFilePath, 'w') as outfile:
-              for idx, jsonObject in enumerate(jsonStream):
-                json.dump(jsonObject, outfile, indent=None)
-                outfile.write("\n")
-                sys.stderr.write("\r" + str(idx+1))
-              sys.stderr.write("\n")
+                print('Beginning output stream')
+                print_progress(0, total)
+                for idx, jsonObject in enumerate(jsonStream):
+                    json.dump(jsonObject, outfile, indent=None)
+                    outfile.write("\n")
+                    print_progress(idx+1, total)
         else:
             print('Version ' + args.v + ' is not supported')
     else:
